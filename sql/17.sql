@@ -26,6 +26,5 @@ SELECT
   revenue,
   SUM(revenue) OVER (ORDER BY rank) AS "total revenue"
 FROM film_data
-FROM cumulative
 ORDER BY rank, title;
 
