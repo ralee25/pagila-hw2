@@ -11,7 +11,7 @@
 WITH film_data AS (
   SELECT 
     f.title, 
-    COALESCE(SUM(p.amount), 0.00) AS revenue
+    SUM(COALESCE(p.amount, 0.00)) AS revenue
   FROM film AS f
   LEFT JOIN inventory AS i ON f.film_id = i.film_id
   LEFT JOIN rental AS r ON i.inventory_id = r.inventory_id
@@ -20,12 +20,10 @@ WITH film_data AS (
 ),
 cumulative AS (
   SELECT
-    rank() OVER (ORDER BY revenue DESC, title DESC) AS rank,
+    RANK() OVER (ORDER BY revenue DESC) AS rank,
     title,
     revenue,
-    SUM(revenue) OVER (ORDER BY revenue DESC, title DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS "total revenue",
-    100 * SUM(revenue) OVER (ORDER BY revenue DESC, title DESC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
-         / SUM(revenue) OVER () AS percent_val
+    SUM(revenue) OVER (ORDER BY revenue DESC) AS "total revenue"
   FROM film_data
 )
 SELECT
@@ -33,10 +31,7 @@ SELECT
     title,
     revenue,
     "total revenue",
-    CASE 
-      WHEN percent_val < 100 THEN to_char(percent_val, '00.00')
-      ELSE to_char(percent_val, '000.00')
-    END AS "percent revenue"
+    TO_CHAR((100.0 * "total revenue") / NULLIF(SUM(revenue) OVER (), 0), 'FM900.00') AS "percent revenue"
 FROM cumulative
-ORDER BY rank;
+ORDER BY revenue DESC, title;
 
